@@ -13,15 +13,15 @@ document.getElementById('signupForm').addEventListener('submit', async function(
         });
 
         const result = await response.json();
-        console.log("📩 API Response:", result);
+        console.log("API Response:", result);
 
         if (response.ok) {
-            alert("✅ Signup successful!");
+            alert("Signup successful!");
         } else {
-            alert("❌ Error: " + result.message);
+            alert("Error: " + result.message);
         }
     } catch (error) {
-        console.error("❌ Fetch Error:", error);
-        alert("❌ Failed to connect to the server.");
+        console.error("Fetch Error:", error);
+        alert("Failed to connect to the server.");
     }
 });
