@@ -22,4 +22,27 @@ router.post('/signup', async (req,res) => {
     }
 });
 
+router.post('/login', async (req,res) => {
+    try {
+        console.log(req.body);
+        const {email,password} = req.body;
+
+        const existingUser = await User.findOne({where : {email}});
+        if(existingUser){
+            const storedPassword = existingUser.password;
+            console.log(storedPassword);
+            console.log(password);
+            if(storedPassword === password){
+                return res.status(200).json({message: "Login Successful"});
+            } else {
+                res.status(400).json({message: "Password Incorrect"});
+            }
+        } else {
+            res.status(400).json({message: "User not found"});
+        }
+    } catch(error) {
+        res.status(500).json({message: "Database error",error: error.message});
+    }
+});
+
 module.exports = router;

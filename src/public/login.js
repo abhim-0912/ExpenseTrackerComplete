@@ -1,3 +1,5 @@
+
+
 document.getElementById("loginForm").addEventListener("submit", async function(event) {
     event.preventDefault();
 
@@ -15,6 +17,7 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         console.log(result);
 
         if(response.ok){
+            alert("Login Successful");
             console.log("Login Successful: ",result);
         } else {
             alert("Error: "+result.message);
