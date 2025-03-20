@@ -1,4 +1,3 @@
-const { message } = require('statuses');
 const Expense = require('../models/Expense');
 
 exports.addExpense = async (req,res) => {
@@ -23,15 +22,14 @@ exports.addExpense = async (req,res) => {
 exports.getExpenses = async (req,res) => {
     try {
         const userId = req.userId;
-        const allExpenses = await Expense.findAll({where: {userId}});
-        if(allExpenses.length === 0){
-            return res.status(200).json({success: true, message: "No expense found"});
-        }
-        res.status(200).json({success: true, message: "All expenses found", expenses: allExpenses});
+        const allExpenses = await Expense.findAll({ where: { userId } });
+
+        res.status(200).json({ success: true, expenses: allExpenses });
     } catch(error) {
-        res.status(500).json({success: false, message: "Unable to find expenses", error: error.message});
+        res.status(500).json({ success: false, message: "Unable to find expenses", error: error.message });
     }
 };
+
 
 exports.editExpense = async (req,res) => {
     try {
@@ -60,7 +58,7 @@ exports.editExpense = async (req,res) => {
             updatedExpense.expenseType = req.body.expenseType;
         }
         console.log(updatedExpense);
-        await Expense.update(updatedExpense,{ where: {id: expenseId, userId: req.userId}});
+        await Expense.update(updatedExpense,{ where: {id: expenseId, userId}});
         expenseUpdated = await Expense.findOne({where: {id: expenseId}});
         console.log(expenseUpdated);
         res.status(200).json({success: true, message: "Expense Updated succesfully", expense: expenseUpdated});

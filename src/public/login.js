@@ -19,6 +19,8 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         if(response.ok){
             alert("Login Successful");
             console.log("Login Successful: ",result);
+            localStorage.setItem("token",result.token);
+            window.location.href = "expenses.html";
         } else {
             alert("Error: "+result.message);
         }
