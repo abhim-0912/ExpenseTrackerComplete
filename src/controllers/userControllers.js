@@ -32,14 +32,14 @@ exports.login = async (req,res) => {
             console.log(password);
             const isMatch = await bcrypt.compare(password,storedPassword);
             if(isMatch){
-                return res.status(200).json({message: "Login Successful"});
+                return res.status(200).json({success: true, message: "Login Successful"});
             } else {
-                res.status(400).json({message: "Password Incorrect"});
+                res.status(400).json({success: false, message: "Password Incorrect"});
             }
         } else {
-            res.status(400).json({message: "User not found"});
+            res.status(400).json({success: false, message: "User not found"});
         }
     } catch(error) {
-        res.status(500).json({message: "Database error",error: error.message});
+        res.status(500).json({success: false, message: "Database error",error: error.message});
     }
 };
