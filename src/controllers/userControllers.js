@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 exports.signup = async (req,res) => {
     try {
@@ -32,9 +34,10 @@ exports.login = async (req,res) => {
             console.log(password);
             const isMatch = await bcrypt.compare(password,storedPassword);
             if(isMatch){
-                return res.status(200).json({success: true, message: "Login Successful"});
+                const token = jwt.sign({id : existingUser.id}, process.env.JWT_SECRET, {expiresIn: '1h'});
+                return res.status(200).json({success: true, message: "Login Successful", token});
             } else {
-                res.status(400).json({success: false, message: "Password Incorrect"});
+                return res.status(400).json({success: false, message: "Password Incorrect"});
             }
         } else {
             res.status(400).json({success: false, message: "User not found"});

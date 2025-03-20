@@ -1,7 +1,10 @@
 const express = require("express");
 const userRoutes = require("./routes/userRoutes");
+const expenseRoutes = require("./routes/expenseRoutes");
 const path = require("path");
 const cors = require('cors');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+const authMiddleware = require("./middleware/auth");
 
 const app = express();
 
@@ -10,11 +13,17 @@ app.use(express.json());
 
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/",(req,res) => {
-    res.sendFile(path.join(__dirname,"./public/signup.html"));
+app.get("/", (req, res) => {
+    const token = req.headers.authorization;
+    if (token) {
+        res.sendFile(path.join(__dirname, "./public/expenses.html"));
+    } else {
+        res.sendFile(path.join(__dirname, "./public/signup.html"));
+    }
 });
 
 app.use('/user',userRoutes);
+app.use('/expense',authMiddleware, expenseRoutes);
 
 const PORT = 3000;
 
