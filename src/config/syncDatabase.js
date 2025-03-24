@@ -1,5 +1,5 @@
 const sequelize = require('./database');
-const {User,Expense} = require('../models');
+require('../models');
 
 (async () => {
     try {
