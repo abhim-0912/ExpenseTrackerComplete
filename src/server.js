@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
 
 app.use("/user", userRoutes);
 app.use("/expense", authMiddleware, expenseRoutes);
-app.use("/purchase", authMiddleware, purchaseRoutes);
+app.use("/purchase", purchaseRoutes);
 
 const PORT = 3000;
 

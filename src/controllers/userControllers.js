@@ -34,7 +34,11 @@ exports.login = async (req,res) => {
             console.log(password);
             const isMatch = await bcrypt.compare(password,storedPassword);
             if(isMatch){
-                const token = jwt.sign({id : existingUser.id}, process.env.JWT_SECRET, {expiresIn: '1h'});
+                const token = jwt.sign(
+                    { id: existingUser.id, isPremium: existingUser.isPremium },  // include isPremium here
+                    process.env.JWT_SECRET,
+                    { expiresIn: '1h' }
+                  );
                 return res.status(200).json({success: true, message: "Login Successful", token});
             } else {
                 return res.status(400).json({success: false, message: "Password Incorrect"});

@@ -1,31 +1,19 @@
 const sequelize = require("../config/database");
 const { User, Purchase } = require("../models/index");
-const auth = require("../middleware/auth");
 const axios = require("axios");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 exports.newPurchase = async (req, res) => {
   try {
     const userId = req.userId;
     const amount = 99;
+
     const user = await User.findByPk(userId);
-    const email = user ? user.email : "test@example.com";
+    const email = user?.email || "test@example.com";
+
     const orderId = `order_${Math.random().toString(36).substr(2, 9)}`;
-    console.log("Calling Cashfree Order API...");
-    console.log("Payload being sent to Cashfree:", {
-      order_id: orderId,
-      order_amount: amount.toString(),
-      order_currency: "INR",
-      customer_details: {
-        customer_id: `user_${userId}`,
-        customer_email: email,
-        customer_phone: "9449009423",
-      },
-      order_meta: {
-        return_url: `http://localhost:3000/?orderId=${orderId}`,
-        payment_methods: "cc,dc,upi",
-      },
-    });
+
     const orderResponse = await axios.post(
       "https://sandbox.cashfree.com/pg/orders",
       {
@@ -38,7 +26,7 @@ exports.newPurchase = async (req, res) => {
           customer_phone: "9449009423",
         },
         order_meta: {
-          return_url: `http://localhost:3000/?orderId=${orderId}`,
+          return_url: `http://localhost:3000/payment-success.html?orderId=${orderId}`,
           payment_methods: "cc,dc,upi",
         },
       },
@@ -74,27 +62,42 @@ exports.newPurchase = async (req, res) => {
       paymentSessionId,
     });
   } catch (error) {
-    console.error("Purchase error : ", error);
+    console.error("Purchase error:", error);
     res.status(500).json({
       success: false,
       message: "Something went wrong",
-      error: error.response?.data || error.message || "Unknown error",
+      error: error.response?.data || error.message,
     });
   }
 };
 
-exports.purchaseStatus = async (req, res) => {
+exports.verifyPayment = async (req, res) => {
   try {
-    const orderId = req.query.orderId;
-    const checkOrder = await Purchase.findOne({ where: { orderId } });
-    const userId = checkOrder.userId;
-    if (!checkOrder) {
+    const user = await User.findByPk(req.userId);
+    if (!user) {
       return res
         .status(404)
-        .json({ success: false, message: "Order not found" });
+        .json({ success: false, message: "User not found" });
     }
+
+    if (user.isPremium) {
+      return res.json({
+        success: false,
+        message: "User already premium",
+      });
+    }
+
+    const lastOrder = await Purchase.findOne({
+      where: { userId: req.userId },
+      order: [["createdAt", "DESC"]],
+    });
+
+    if (!lastOrder) {
+      return res.json({ success: false, message: "No order found" });
+    }
+
     const paymentStatus = await axios.get(
-      `https://sandbox.cashfree.com/pg/orders/${orderId}`,
+      `https://sandbox.cashfree.com/pg/orders/${lastOrder.orderId}`,
       {
         headers: {
           "x-client-id": process.env.CASHFREE_CLIENT_ID,
@@ -103,30 +106,40 @@ exports.purchaseStatus = async (req, res) => {
         },
       }
     );
-    if (!paymentStatus) {
-      return res.status(500).json({
-        success: false,
-        message: "Error in getting the Payment status",
+    const status = paymentStatus.data?.order_status;
+    if (status === "PAID" || status === "SUCCESS") {
+      console.log(paymentStatus.data);
+      await Purchase.update(
+        {
+          paymentId: paymentStatus.data?.payments?.[0]?.payment_id || "UNKNOWN",
+          status: "SUCCESS",
+        },
+        { where: { orderId: lastOrder.orderId } }
+      );
+
+      await User.update({ isPremium: true }, { where: { id: req.userId } });
+
+      const newToken = jwt.sign(
+        { id: user.id, isPremium: true },
+        process.env.JWT_SECRET
+      );
+
+      return res.json({
+        success: true,
+        message: "User upgraded",
+        newToken,
       });
     }
-    const paymentDetails = paymentStatus.data?.payments?.[0];
-    const updatedOrder = {};
-    updatedOrder.paymentId = paymentDetails.payment_id;
-    updatedOrder.status = paymentStatus.data?.order_status;
-    await Purchase.update(updatedOrder, { where: { orderId } });
-    if (updatedOrder.status !== "SUCCESS") {
-      return res
-        .status(500)
-        .json({ success: false, message: "Order not successful" });
-    }
-    await User.update({ isPremium: true }, { where: { id: userId } });
-    res.status(200).json({ success: true, message: "Order succesfull" });
+
+    return res.json({
+      success: false,
+      message: "Payment not successful yet",
+    });
   } catch (error) {
-    console.error("Order status error:", error.message);
+    console.error("Verify payment error:", error.message);
     res.status(500).json({
       success: false,
-      message: "Something went wrong",
-      error: error.message,
+      message: "Error verifying payment",
     });
   }
 };
