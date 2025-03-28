@@ -187,3 +187,37 @@ document.getElementById("payBtn").addEventListener("click", async () => {
     alert("Payment error: " + error.message);
   }
 });
+
+
+const showLeaderboardList = async (req,res) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Token not found");
+    const response = await fetch('/user/leaderboard',{
+      method: 'GET',
+      headers: {
+        Authorization : `Bearer ${token}`,
+        'Content-Type' : 'application/json'
+      }
+    });
+    if(!response.ok){
+      console.log("Unable to receive any response");
+      return;
+    }
+    const result = await response.json();
+    const leaderboardList = document.getElementById('leaderboardList');
+    leaderboardList.innerHTML = "";
+    result.leaderboard.forEach((user) => {
+      const name = user.name;
+      const totalExpense = user.totalExpense;
+      const userExpenseList = document.createElement('li');
+      userExpenseList.textContent = `${name} - $${totalExpense}`;
+      leaderboardList.appendChild(userExpenseList);
+    });
+    document.getElementById("leaderboardContainer").style.display = "block";
+  } catch(error) {
+    console.log("Error in getting the Leaderboard : ",error);
+  }
+};
+
+document.getElementById('leaderboardBtn').addEventListener('click',showLeaderboardList);

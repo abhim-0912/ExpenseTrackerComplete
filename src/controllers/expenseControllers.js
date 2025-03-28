@@ -6,20 +6,16 @@ exports.addExpense = async (req, res) => {
     const userId = req.userId;
     const { expenseName, amount, expenseType } = req.body;
     if (!expenseName || !expenseType) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Expense name and type are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Expense name and type are required",
+      });
     }
     if (!amount || isNaN(amount) || amount <= 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Amount must be a valid positive number",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Amount must be a valid positive number",
+      });
     }
     const newExpense = await Expense.create({
       userId,
@@ -29,27 +25,23 @@ exports.addExpense = async (req, res) => {
     });
     const userData = await User.findOne({ where: { id: userId } });
     const currExpense = userData.totalExpense;
-    const updatedExpense = currExpense + amount;
+    const updatedExpense = currExpense + parseFloat(amount);
     await User.update(
       { totalExpense: updatedExpense },
       { where: { id: userId } }
     );
     console.log(newExpense);
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "New Expense created",
-        expense: newExpense,
-      });
+    res.status(201).json({
+      success: true,
+      message: "New Expense created",
+      expense: newExpense,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to create expense",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to create expense",
+      error: error.message,
+    });
   }
 };
 
@@ -60,13 +52,11 @@ exports.getExpenses = async (req, res) => {
 
     res.status(200).json({ success: true, expenses: allExpenses });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Unable to find expenses",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Unable to find expenses",
+      error: error.message,
+    });
   }
 };
 
@@ -104,29 +94,29 @@ exports.editExpense = async (req, res) => {
     await Expense.update(updatedExpense, { where: { id: expenseId, userId } });
     expenseUpdated = await Expense.findOne({ where: { id: expenseId } });
     const userData = await User.findOne({ where: { id: userId } });
-    const updatedAmount = updatedExpense.amount || expenseStored.amount;
+    const originalAmount = parseFloat(expenseStored.amount);
+    const newAmount =
+      updatedExpense.amount !== undefined
+        ? parseFloat(updatedExpense.amount)
+        : originalAmount;
     const updatedTotalExpense =
-      userData.totalExpense - expenseStored.amount + updatedAmount;
+      userData.totalExpense - originalAmount + newAmount;
     await User.update(
       { totalExpense: updatedTotalExpense },
       { where: { id: userId } }
     );
     console.log(expenseUpdated);
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Expense Updated succesfully",
-        expense: expenseUpdated,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Expense Updated succesfully",
+      expense: expenseUpdated,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to update the Expense",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to update the Expense",
+      error: error.message,
+    });
   }
 };
 
@@ -148,17 +138,21 @@ exports.deleteExpense = async (req, res) => {
         .status(403)
         .json({ success: false, message: "Forbidden access" });
     }
+    const userData = await User.findOne({ where: { id: userId } });
+    const updatedExpense = userData.totalExpense - deleteExpense.amount;
+    await User.update(
+      { totalExpense: updatedExpense },
+      { where: { id: userId } }
+    );
     await deleteExpense.destroy();
     res
       .status(200)
       .json({ success: true, message: "Deleted the Expense Successfully" });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error in deleting the expense",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error in deleting the expense",
+      error: error.message,
+    });
   }
 };
