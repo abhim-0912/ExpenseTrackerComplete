@@ -29,6 +29,14 @@ const User = sequelize.define('User',{
         type: DataTypes.FLOAT,
         allowNull: false,
         defaultValue: 0
+    },
+    resetToken : {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    tokenExpiry : {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     timestamps: true

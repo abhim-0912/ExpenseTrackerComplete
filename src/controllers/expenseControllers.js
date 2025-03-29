@@ -1,6 +1,8 @@
 const { Expense, User } = require("../models/index");
+const sequelize = require('../config/database');
 
 exports.addExpense = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     console.log(req.body);
     const userId = req.userId;
@@ -22,14 +24,15 @@ exports.addExpense = async (req, res) => {
       expenseName,
       amount,
       expenseType,
-    });
+    },{transaction: t});
     const userData = await User.findOne({ where: { id: userId } });
     const currExpense = userData.totalExpense;
     const updatedExpense = currExpense + parseFloat(amount);
     await User.update(
       { totalExpense: updatedExpense },
-      { where: { id: userId } }
+      { where: { id: userId }, transaction: t },
     );
+    await t.commit();
     console.log(newExpense);
     res.status(201).json({
       success: true,
@@ -37,6 +40,7 @@ exports.addExpense = async (req, res) => {
       expense: newExpense,
     });
   } catch (error) {
+    await t.rollback();
     res.status(500).json({
       success: false,
       message: "Failed to create expense",
@@ -61,6 +65,7 @@ exports.getExpenses = async (req, res) => {
 };
 
 exports.editExpense = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     console.log(req.body);
     const expenseId = req.params.id;
@@ -91,8 +96,8 @@ exports.editExpense = async (req, res) => {
       updatedExpense.expenseType = req.body.expenseType;
     }
     console.log(updatedExpense);
-    await Expense.update(updatedExpense, { where: { id: expenseId, userId } });
-    expenseUpdated = await Expense.findOne({ where: { id: expenseId } });
+    await Expense.update(updatedExpense, { where: { id: expenseId, userId },transaction: t });
+    const expenseUpdated = await Expense.findOne({ where: { id: expenseId } });
     const userData = await User.findOne({ where: { id: userId } });
     const originalAmount = parseFloat(expenseStored.amount);
     const newAmount =
@@ -103,15 +108,17 @@ exports.editExpense = async (req, res) => {
       userData.totalExpense - originalAmount + newAmount;
     await User.update(
       { totalExpense: updatedTotalExpense },
-      { where: { id: userId } }
+      { where: { id: userId },transaction: t }
     );
     console.log(expenseUpdated);
+    await t.commit();
     res.status(200).json({
       success: true,
       message: "Expense Updated succesfully",
       expense: expenseUpdated,
     });
   } catch (error) {
+    await t.rollback();
     res.status(500).json({
       success: false,
       message: "Failed to update the Expense",
@@ -121,6 +128,7 @@ exports.editExpense = async (req, res) => {
 };
 
 exports.deleteExpense = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const userId = req.userId;
     const expenseId = req.params.id;
@@ -142,13 +150,15 @@ exports.deleteExpense = async (req, res) => {
     const updatedExpense = userData.totalExpense - deleteExpense.amount;
     await User.update(
       { totalExpense: updatedExpense },
-      { where: { id: userId } }
+      { where: { id: userId },transaction: t }
     );
-    await deleteExpense.destroy();
+    await deleteExpense.destroy({transaction: t});
+    await t.commit();
     res
       .status(200)
       .json({ success: true, message: "Deleted the Expense Successfully" });
   } catch (error) {
+    await t.rollback();
     res.status(500).json({
       success: false,
       message: "Error in deleting the expense",

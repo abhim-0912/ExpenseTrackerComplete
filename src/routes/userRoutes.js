@@ -11,4 +11,6 @@ router.post('/login', userController.login);
 
 router.get('/leaderboard',authMiddleware,userController.leaderboardFeature);
 
+router.post('/forgot-password',userController.forgotPassword);
+
 module.exports = router;
