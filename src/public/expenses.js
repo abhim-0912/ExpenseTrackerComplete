@@ -1,3 +1,13 @@
+let currentPage = 1;
+let limit = 5;
+let totalPages = 1;
+
+document.getElementById("limitSelect").addEventListener("change", (e) => {
+  limit = parseInt(e.target.value);
+  currentPage = 1;
+  fetchExpenses();
+});
+
 document.addEventListener("DOMContentLoaded", async function () {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -39,7 +49,8 @@ async function addExpense() {
   if (res.ok) {
     alert("Expense added successfully!");
     document.getElementById("expenseForm").reset();
-    addExpenseToList(result.expense);
+    currentPage = 1;
+    fetchExpenses();
   } else {
     alert("Error: " + result.message);
   }
@@ -49,15 +60,28 @@ async function fetchExpenses() {
   const token = localStorage.getItem("token");
   if (!token) return;
 
-  const res = await fetch("/expense", {
+  const res = await fetch(`/expense?page=${currentPage}&limit=${limit}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
   const result = await res.json();
+
   if (res.ok) {
     const list = document.getElementById("expensesList");
     list.innerHTML = "";
-    result.expenses.forEach(addExpenseToList);
+
+    if (result.expenses.length === 0) {
+      list.innerHTML = "<li>No expenses found.</li>";
+    } else {
+      result.expenses.forEach(addExpenseToList);
+    }
+
+    totalPages = result.totalPages;
+    document.getElementById("paginationInfo").textContent = `Page ${currentPage} of ${totalPages}`;
+    document.getElementById("prevPageBtn").disabled = currentPage <= 1;
+    document.getElementById("nextPageBtn").disabled = currentPage >= totalPages;
+  } else {
+    alert(result.message || "Error fetching expenses");
   }
 }
 
@@ -69,9 +93,7 @@ function addExpenseToList(expense) {
     document.getElementById("expensesList").appendChild(item);
   }
 
-  item.innerHTML = `
-    ${expense.expenseName} - $${expense.amount} - ${expense.expenseType} 
-  `;
+  item.innerHTML = `${expense.expenseName} - $${expense.amount} - ${expense.expenseType}`;
 
   const editBtn = document.createElement("button");
   editBtn.textContent = "Edit";
@@ -97,7 +119,8 @@ async function deleteExpense(id) {
   const result = await res.json();
   if (res.ok) {
     alert("Expense Deleted Successfully");
-    document.getElementById(`expense-${id}`).remove();
+    currentPage = 1;
+    fetchExpenses();
   } else {
     alert("Error: " + result.message);
   }
@@ -135,7 +158,7 @@ async function updateExpense(id) {
   const result = await res.json();
   if (res.ok) {
     alert("Expense Updated Successfully");
-    addExpenseToList({ ...data, id });
+    fetchExpenses();
     document.getElementById("expenseForm").reset();
     const addBtn = document.getElementById("addBtn");
     addBtn.textContent = "Add Expense";
@@ -160,6 +183,7 @@ async function checkPremiumStatus() {
   document.getElementById("payBtn").style.display = "none";
   document.getElementById("premium-text").textContent = "You are a premium user 👑";
   document.getElementById("leaderboardBtn").hidden = false;
+  document.getElementById("downloadBtn").hidden = false;
 }
 
 document.getElementById("payBtn").addEventListener("click", async () => {
@@ -188,36 +212,80 @@ document.getElementById("payBtn").addEventListener("click", async () => {
   }
 });
 
-
-const showLeaderboardList = async (req,res) => {
+const showLeaderboardList = async () => {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) throw new Error("Token not found");
-    const response = await fetch('/user/leaderboard',{
-      method: 'GET',
+
+    const response = await fetch("/user/leaderboard", {
+      method: "GET",
       headers: {
-        Authorization : `Bearer ${token}`,
-        'Content-Type' : 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
-    if(!response.ok){
-      console.log("Unable to receive any response");
-      return;
-    }
+
+    if (!response.ok) return;
+
     const result = await response.json();
-    const leaderboardList = document.getElementById('leaderboardList');
+    const leaderboardList = document.getElementById("leaderboardList");
     leaderboardList.innerHTML = "";
     result.leaderboard.forEach((user) => {
-      const name = user.name;
-      const totalExpense = user.totalExpense;
-      const userExpenseList = document.createElement('li');
-      userExpenseList.textContent = `${name} - $${totalExpense}`;
+      const userExpenseList = document.createElement("li");
+      userExpenseList.textContent = `${user.name} - $${user.totalExpense}`;
       leaderboardList.appendChild(userExpenseList);
     });
+
     document.getElementById("leaderboardContainer").style.display = "block";
-  } catch(error) {
-    console.log("Error in getting the Leaderboard : ",error);
+  } catch (error) {
+    console.log("Error in getting the Leaderboard: ", error);
   }
 };
 
-document.getElementById('leaderboardBtn').addEventListener('click',showLeaderboardList);
+document.getElementById("leaderboardBtn").addEventListener("click", showLeaderboardList);
+
+document.getElementById("downloadBtn").addEventListener("click", async function () {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Please log in to download report");
+    return;
+  }
+
+  try {
+    const res = await fetch("/expense/download-report", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const result = await res.json();
+    if (res.ok && result.fileUrl) {
+      const link = document.createElement("a");
+      link.href = result.fileUrl;
+      link.download = "";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert(result.message || "Failed to download report");
+    }
+  } catch (error) {
+    console.error("Download error:", error);
+    alert("An error occurred while downloading the report");
+  }
+});
+
+document.getElementById("prevPageBtn").addEventListener("click", () => {
+  if (currentPage > 1) {
+    currentPage--;
+    fetchExpenses();
+  }
+});
+
+document.getElementById("nextPageBtn").addEventListener("click", () => {
+  if (currentPage < totalPages) {
+    currentPage++;
+    fetchExpenses();
+  }
+});

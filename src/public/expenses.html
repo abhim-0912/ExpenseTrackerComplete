@@ -29,16 +29,29 @@
             <p id="premium-text">Become a Premium customer 👑</p>
             <button id="payBtn">Pay</button>
             <button id="leaderboardBtn" hidden>Leaderboard</button>
+            <button id="downloadBtn" hidden>Download Report</button>
         </div>
-
-        <div id="leaderboardContainer" style="display: none;">
-            <h3>Leaderboard</h3>
-            <ul id="leaderboardList"></ul>
+        <div id="premium-features">
+            <div id="leaderboardContainer" style="display: none;">
+                <h3>Leaderboard</h3>
+                <ul id="leaderboardList"></ul>
+            </div>
         </div>
+       
         <h2>Your Expenses</h2>
         <ul id="expensesList">
-
         </ul>
+        <div>
+            <label for="limitSelect">Show:</label>
+            <select id="limitSelect">
+              <option value="5" selected>5</option>
+              <option value="10">10</option>
+              <option value="25">25</option>
+            </select>
+            <span id="paginationInfo"></span>
+            <button id="prevPageBtn">Previous</button>
+            <button id="nextPageBtn">Next</button>
+          </div>
     </div>
     <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
     <script src="expenses.js"></script>

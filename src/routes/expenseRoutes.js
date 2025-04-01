@@ -7,5 +7,6 @@ router.post('/',authMiddleware, expenseController.addExpense);
 router.get('/',authMiddleware, expenseController.getExpenses);
 router.delete('/:id',authMiddleware, expenseController.deleteExpense);
 router.put('/:id',authMiddleware, expenseController.editExpense);
+router.get('/download-report',authMiddleware,expenseController.downloadReport);
 
 module.exports = router;
