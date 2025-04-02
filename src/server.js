@@ -6,12 +6,24 @@ const path = require("path");
 const cors = require("cors");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const authMiddleware = require("./middleware/auth");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
+const fs = require('fs');
+
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname,'logs','access.log'),
+  {flags: 'a'}
+);
+app.use(morgan('combined',{stream: accessLogStream}));
 
+app.use(helmet());
+app.use(compression());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (req, res) => {
@@ -21,6 +33,7 @@ app.get("/", (req, res) => {
 app.use("/user", userRoutes);
 app.use("/expense", authMiddleware, expenseRoutes);
 app.use("/purchase", purchaseRoutes);
+
 
 const PORT = 3000;
 
