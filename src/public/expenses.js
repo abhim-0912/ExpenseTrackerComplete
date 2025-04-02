@@ -184,6 +184,8 @@ async function checkPremiumStatus() {
   document.getElementById("premium-text").textContent = "You are a premium user 👑";
   document.getElementById("leaderboardBtn").hidden = false;
   document.getElementById("downloadBtn").hidden = false;
+  document.getElementById("downloadedFilesBtn").hidden = false;
+
 }
 
 document.getElementById("payBtn").addEventListener("click", async () => {
@@ -289,3 +291,40 @@ document.getElementById("nextPageBtn").addEventListener("click", () => {
     fetchExpenses();
   }
 });
+
+document.getElementById("downloadedFilesBtn").addEventListener("click", async () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Login required");
+    return;
+  }
+
+  try {
+    const res = await fetch("/expense/downloaded-files", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const result = await res.json();
+    if (res.ok && result.files.length > 0) {
+      const list = document.getElementById("downloadedFilesList");
+      list.innerHTML = ""; // clear previous list
+      result.files.forEach((file, index) => {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = file.fileUrl;
+        a.textContent = `Download ${index + 1}`;
+        a.target = "_blank";
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+
+      document.getElementById("downloadedFilesContainer").style.display = "block";
+    } else {
+      alert("No downloaded files found.");
+    }
+  } catch (err) {
+    console.error("Error fetching downloaded files:", err);
+    alert("Something went wrong");
+  }
+});
+

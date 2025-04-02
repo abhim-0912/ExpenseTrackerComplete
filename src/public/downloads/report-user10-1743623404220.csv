@@ -1,0 +1,13 @@
+Date,Expense,Type,Amount,Category
+2025-03-29,Solitaire Game,Entertainment,717.00,Daily
+2025-03-29,Snacks,Food,1500.00,Daily
+2025-04-01,Paid premium,Other,99.00,Daily
+2025-04-02,Mobile,Shopping,10000.00,Daily
+2025-04-02,Jeans,Shopping,999.00,Daily
+2025-04-02,Shirt,Shopping,599.00,Daily
+2025-04-02,Mattress,Other,555.00,Daily
+2025-W13,,,2217.00,Weekly
+2025-W14,,,12252.00,Weekly
+2025-03,,,2217.00,Monthly
+2025-04,,,12252.00,Monthly
+2025,,,14469.00,Yearly

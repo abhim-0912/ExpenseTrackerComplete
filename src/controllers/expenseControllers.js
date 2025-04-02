@@ -4,6 +4,8 @@ const fs = require("fs");
 const path = require("path");
 const { format } = require("date-fns");
 const { writeToPath } = require("fast-csv");
+const {uploadToS3} = require('../services/s3Service');
+const Download = require('../models/Download');
 
 exports.addExpense = async (req, res) => {
   const t = await sequelize.transaction();
@@ -277,17 +279,44 @@ exports.downloadReport = async (req, res) => {
       fs.mkdirSync(downloadsDir);
     }
 
-    await writeToPath(filePath, rows, {
-      headers: ["Date", "Expense", "Type", "Amount", "Category"],
+    await new Promise((resolve, reject) => {
+      writeToPath(filePath, rows, {
+        headers: ["Date", "Expense", "Type", "Amount", "Category"],
+      })
+        .on("finish", resolve)
+        .on("error", reject);
     });
-
-    const fileUrl = `/downloads/${fileName}`;
+    const s3Key = `reports/${fileName}`;
+    const fileUrl = await uploadToS3(filePath,s3Key);
+    await Download.create({
+      fileUrl,
+      userId
+    });
     res.status(200).json({ success: true, fileUrl });
   } catch (error) {
     console.error("CSV Report Error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to generate CSV report",
+      error: error.message,
+    });
+  }
+};
+
+
+exports.getDownloadedFiles = async (req,res) => {
+  try {
+    const userId = req.userId;
+    const allFiles = await Download.findAll({
+      where : {userId},
+      order: [['createdAt','DESC']],
+    });
+    res.status(200).json({success: true, files: allFiles});
+  } catch(error) {
+    console.error("Error fetching downloaded files:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch downloaded files",
       error: error.message,
     });
   }
